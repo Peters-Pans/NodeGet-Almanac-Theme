@@ -23,10 +23,10 @@ export function NodeCard({ node }: { node: Node }) {
   const spark = (node.history ?? []).map(s => (s.cpu == null ? 0 : s.cpu))
 
   return (
-      <a href={`#${encodeURIComponent(node.uuid)}`} className="block">
+      <a href={`#${encodeURIComponent(node.uuid)}`} className="block h-full">
         <Card
             className={cn(
-                'p-4 transition hover:border-primary/50 hover:shadow-md flex flex-col gap-3',
+                'p-4 transition hover:border-primary/50 hover:shadow-md flex flex-col gap-3 h-full',
                 !node.online && 'opacity-60',
             )}
         >
@@ -70,6 +70,7 @@ export function NodeCard({ node }: { node: Node }) {
               </div>
           )}
 
+          <div className="mt-auto flex flex-col gap-3">
           <div className="pt-2.5 border-t border-dashed font-mono text-xs text-muted-foreground space-y-1.5">
             <div className="flex items-center gap-3">
               <Stat icon={ArrowDown}>{bytes(u.netIn || 0)}/s</Stat>
@@ -107,6 +108,7 @@ export function NodeCard({ node }: { node: Node }) {
                 ))}
               </div>
           )}
+          </div>
         </Card>
       </a>
   )
