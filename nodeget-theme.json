@@ -1,0 +1,36 @@
+{
+  "name": "Almanac",
+  "short": "Almanac",
+  "description": "暖调编辑风 NodeGet 状态页主题 · A warm, editorial status-page theme for NodeGet",
+  "author": "Peters-Pans",
+  "repository": "https://github.com/Peters-Pans/NodeGet-Almanac-Theme",
+  "dist_page": "",
+  "user_preferences_form": {
+    "version": "0.0.1",
+    "items": [
+      {
+        "key": "site_name",
+        "name": "站点标题",
+        "type": "string",
+        "default": "NodeGet Status",
+        "help": "输入站点标题"
+      },
+      {
+        "key": "site_logo",
+        "name": "站点图标",
+        "type": "string",
+        "default": "",
+        "help": "输入站点图标链接，留空则使用默认"
+      },
+      {
+        "key": "footer",
+        "name": "页脚文本",
+        "type": "string",
+        "default": "Powered by NodeGet",
+        "help": "输入页脚文本"
+      }
+    ]
+  },
+  "version": "will be auto filled using version in package.json",
+  "license": ""
+}
