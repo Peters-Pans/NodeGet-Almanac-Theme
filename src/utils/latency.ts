@@ -1,14 +1,15 @@
 import type { LatencyType, TaskQueryResult } from '../types'
 
+// 暗哑大地色调色板：与暖调主题同族，又能区分多条延迟线（按来源名哈希取色）
 const COLORS = [
-  '#3b82f6',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
-  '#06b6d4',
-  '#ec4899',
-  '#14b8a6',
+  '#bd6338', // 陶土
+  '#5f7a3f', // 苔绿
+  '#bd8a2b', // 芥黄
+  '#a2382a', // 砖红
+  '#4f7a72', // 灰青
+  '#6b7a99', // 墨蓝
+  '#94566b', // 灰梅
+  '#7d6a4a', // 陶褐
 ]
 
 export function latencyColor(name: string) {
