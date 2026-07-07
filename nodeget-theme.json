@@ -4,7 +4,7 @@
   "description": "暖调编辑风 NodeGet 状态页主题 · A warm, editorial status-page theme for NodeGet",
   "author": "Peters-Pans",
   "repository": "https://github.com/Peters-Pans/NodeGet-Almanac-Theme",
-  "dist_page": "",
+  "dist_page": "https://nodeget-almanac-theme.pages.dev",
   "user_preferences_form": {
     "version": "0.0.1",
     "items": [
