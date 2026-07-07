@@ -1,82 +1,55 @@
-# NodeGet-StatusShow
+# Almanac · NodeGet 状态页主题
 
-一个服务器状态展示页，NodeGet的公开探针页面
+暖调编辑风的 [NodeGet](https://github.com/NodeSeekDev/NodeGet) 服务器状态展示页 —— 米白纸底、陶土强调、衬线标题、大留白，明暗双态。刻意避开常见深色科技风。
 
-欢迎开发者基于此版本进行定制，也欢迎 pr 到本项目
+> A warm, editorial status-page theme for NodeGet.
 
-## 开发
+## 特性
+
+- **三视图 + 汇总头**：卡片 / 表格 / 世界地图，顶部全局汇总（节点数 / 在线 / 上下行带宽 / 累计流量）
+- **节点卡片**：CPU sparkline、内存/磁盘进度、网络吞吐、运行时长、价格、有效期
+- **节点详情**：CPU/内存/网络历史趋势图、环形指标、系统与网络信息
+- **语义状态色**：在线苔绿 / 告警芥黄 / 危急砖红，独立于品牌陶土强调色（磁盘 ≥70% 转告警、≥90% 转危急）
+- **自托管字体**：IBM Plex Sans / Mono + Newsreader，不依赖 CDN
+- **明暗双主题**：暗色为暖 espresso 底（非冷灰），默认跟随系统
+- 每 2 秒轮询实时指标，多后端聚合
+
+## 技术栈
+
+React 18 · Vite · Tailwind CSS · Recharts（趋势图）· ECharts（世界地图）· lucide
+
+## 本地开发
 
 ```bash
-npm i
+cp .env.example .env.local   # 填 backend_url(wss://) 与只读 token
+npm install
 npm run dev
 ```
-## 一键部署
-一键部署需要主控的版本在0.2.6以上，请先到[控制面板](https://dash.nodeget.com/#/dashboard/node-manage?tab=servers)查看主控版本
 
-<a href="https://dash.nodeget.com/#/dashboard/theme-management?add=https://nodeget.pages.dev">
-  <img src="https://dash.nodeget.com/deploy-button.png" alt="deploy button" width="230px" />
-</a>
+## 部署
 
+### Cloudflare Pages（推荐）
 
-## 基于静态文件部署
+1. 连接本仓库，Framework preset 选 **None**
+2. Build command：`npm run build`；Build output directory：`dist`
+3. 环境变量 **`NODEGET_CONFIG`**（单行 JSON）：
 
-本项目 build 完是纯静态站， 丢哪都行
+   ```json
+   {"user_preferences":{"site_name":"你的站名","site_logo":"","footer":"Powered by NodeGet"},"site_tokens":[{"name":"节点组","backend_url":"wss://你的后端","token":"只读TOKEN"}]}
+   ```
 
-官方准备了一份可以直接下载的编译结果，方便需要把静态文件部署到其他地方的用户
+4. Node 版本由 `.nvmrc` 固定（22.12，Vite 8 要求）
 
-此下载链接始终与最新版保持一致，利用cloudflare pages自动编译生成
+也支持 Vercel、或 `npm run build` 后把 `dist/`（含自动打包的 zip）传到任意静态托管。
 
-<https://nodeget.pages.dev/NodeGet-StatusShow.zip>
+> ⚠️ **安全**：状态页是公开静态站，token 会打进构建产物、任何人可从源码读取。**务必使用只读 scoped token**（仅监控查询权限），切勿使用管理 / Super Token。
 
-下载后修改 config.json 的信息，然后可以上传到任意静态文件服务，如 nginx、 cloudflare pages、vercel
+## 配置
 
-## 基于 cloudflare pages编译部署
+- `nodeget-theme.json`：主题元信息与用户可配项（站名 / 图标 / 页脚）
+- 运行时连接配置由构建生成的 `config.json` 或 `NODEGET_CONFIG` 环境变量提供
+- `public/custom.css`、`public/custom.js`：部署后可直接编辑，免重新构建即可注入自定义样式 / 脚本
 
-此为官方最推荐的部署方式，方便升级至新版
+## 致谢 / 来源
 
-Fork本仓库, 然后在cloudflare pages / vercel 直接部署，绑定域名
-
-设定环境变量 `NODEGET_CONFIG`，需要是有效的JSON字符串
-
-```json
-{
-  "user_preferences":{
-    "site_name": "NodeGet Status",
-    "site_logo": "",
-    "footer": "Powered by NodeGet"
-  },
-  "site_tokens": [
-    {
-      "name": "master server node 1",
-      "backend_url": "wss://your-backend.example.com",
-      "token": "YOUR_TOKEN_HERE"
-    }
-  ]
-}
-```
-
-要更新版本则就在 fork 的 GitHub 仓库点击 sync 就行，可以轻松且可控的升级
-
-> 环境变量是 **build 时** 注入的 改完之后必须重新部署一次才会生效 在面板里光改不重新跑 build 是没用的
-
-## 环境变量(旧版)
-
-旧版没有充分考虑扩展性，只支持有限的环境变量
-
-```
-SITE_NAME=狼牙的探针
-SITE_LOGO=https://example.com/logo.png
-SITE_FOOTER=Powered by NodeGet
-SITE_1=name="master-1",backend_url="wss://m1.example.com",token="abc123"
-SITE_2=name="master-2",backend_url="wss://m2.example.com",token="xyz789" 
-```
-
-前三个对应 `site_name` / `site_logo` / `footer` 不写就用默认值
-
-`SITE_n` 是主控 值用 `key="value"` 拿逗号串起来 支持 `name` / `backend_url` / `token` 三个字段 值里要塞引号或反斜杠的话用 `\"` 和 `\\` 转义
-
-从 `SITE_1` 开始连续往上数 中间断了就停 所以加新主控接着 `SITE_3` `SITE_4` 就行
-
-一个 `SITE_n` 都没设的话脚本啥也不干 直接用仓库里那份 `config.json` 本地 `npm run dev` 走的是 vite 直接起 也不会触发这个脚本
-
-可以只有一个 `SITE` 不强制 `SITE_2` `SITE_3` 之类的
+本主题衍生自 [NodeGet-StatusShow](https://github.com/NodeSeekDev/NodeGet-StatusShow)（by NodeSeekDev），复用其 JSON-RPC / WebSocket 取数层与构建管线，重做了整个表现层。遵循上游 **AGPL-3.0** 许可，见 [LICENSE](./LICENSE)。
