@@ -36,6 +36,17 @@ const TOOLTIP_STYLE = {
   fontSize: 11,
 }
 
+const HOUR = 3600_000
+// 延迟图时间维度：窗口越大越少刷新、limit 显式放宽以取全窗口（后端默认封顶 1000 行）。
+const RANGES = [
+  { key: '1h', label: '1h', ms: HOUR, limit: 2_000, refresh: 10_000 },
+  { key: '6h', label: '6h', ms: 6 * HOUR, limit: 6_000, refresh: 30_000 },
+  { key: '24h', label: '24h', ms: 24 * HOUR, limit: 20_000, refresh: 60_000 },
+  { key: '7d', label: '7d', ms: 7 * 24 * HOUR, limit: 50_000, refresh: 120_000 },
+] as const
+
+type RangeKey = (typeof RANGES)[number]['key']
+
 interface Props {
   node: Node | null
   onClose: () => void
@@ -47,6 +58,8 @@ export function NodeDetail({ node, onClose, showSource, pool }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState(false)
+  const [range, setRange] = useState<RangeKey>('1h')
+  const rc = RANGES.find(r => r.key === range) ?? RANGES[0]
 
   useEffect(() => {
     if (!node) return
@@ -78,6 +91,9 @@ export function NodeDetail({ node, onClose, showSource, pool }: Props) {
     pool,
     node?.source ?? null,
     node?.uuid ?? null,
+    rc.ms,
+    rc.limit,
+    rc.refresh,
   )
 
   if (!node) return null
@@ -209,8 +225,17 @@ export function NodeDetail({ node, onClose, showSource, pool }: Props) {
           rows={tcpData}
           type="tcp_ping"
           loading={latencyLoading}
+          range={range}
+          onRangeChange={setRange}
         />
-        <LatencyBlock title="Ping" rows={pingData} type="ping" loading={latencyLoading} />
+        <LatencyBlock
+          title="Ping"
+          rows={pingData}
+          type="ping"
+          loading={latencyLoading}
+          range={range}
+          onRangeChange={setRange}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <Section title="系统">
@@ -257,12 +282,46 @@ export function NodeDetail({ node, onClose, showSource, pool }: Props) {
   )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: ReactNode
+  children: ReactNode
+}) {
   return (
     <Card className="p-5">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">{title}</div>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">{title}</div>
+        {action}
+      </div>
       {children}
     </Card>
+  )
+}
+
+function RangeTabs({ value, onChange }: { value: RangeKey; onChange: (k: RangeKey) => void }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-md border border-border/60 p-0.5">
+      {RANGES.map(r => (
+        <button
+          key={r.key}
+          type="button"
+          onClick={() => onChange(r.key)}
+          aria-pressed={r.key === value}
+          className={cn(
+            'px-2 py-0.5 rounded text-[11px] font-mono tabular-nums transition-colors',
+            r.key === value
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {r.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -371,11 +430,13 @@ interface LatencyBlockProps {
   rows: TaskQueryResult[]
   type: LatencyType
   loading: boolean
+  range: RangeKey
+  onRangeChange: (k: RangeKey) => void
 }
 
 const ms = (v: number) => `${v.toFixed(1)} ms`
 
-function LatencyBlock({ title, rows, type, loading }: LatencyBlockProps) {
+function LatencyBlock({ title, rows, type, loading, range, onRangeChange }: LatencyBlockProps) {
   const { data, series } = useMemo(() => buildLatencyChart(rows, type), [rows, type])
   const stats = useMemo(() => computeLatencyStats(rows, type), [rows, type])
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
@@ -392,7 +453,7 @@ function LatencyBlock({ title, rows, type, loading }: LatencyBlockProps) {
     })
 
   return (
-    <Section title={`${title} · 近 1 小时`}>
+    <Section title={title} action={<RangeTabs value={range} onChange={onRangeChange} />}>
       <div className={cn('relative', empty ? 'py-8' : 'h-60')}>
         {empty && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">

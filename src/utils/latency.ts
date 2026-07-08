@@ -55,7 +55,36 @@ function forwardFill(data: ChartPoint[], names: string[]) {
   }
 }
 
-export function buildLatencyChart(rows: TaskQueryResult[], type: LatencyType) {
+// 长时间窗口可返回上万点，超过 maxPoints 就按时间等分桶、每桶取各序列最大值——
+// 保留延迟尖峰（比均值更能暴露问题），同时把渲染点数压到 Recharts 能流畅画的量级。
+function downsample(data: ChartPoint[], names: string[], maxPoints: number): ChartPoint[] {
+  if (data.length <= maxPoints) return data
+  const bucket = data.length / maxPoints
+  const out: ChartPoint[] = []
+  for (let i = 0; i < maxPoints; i++) {
+    const start = Math.floor(i * bucket)
+    const end = Math.max(start + 1, Math.floor((i + 1) * bucket))
+    const slice = data.slice(start, end)
+    if (!slice.length) continue
+    const pt: ChartPoint = { t: slice[slice.length - 1].t }
+    for (const n of names) {
+      let max: number | null = null
+      for (const s of slice) {
+        const v = s[n]
+        if (typeof v === 'number' && (max === null || v > max)) max = v
+      }
+      pt[n] = max
+    }
+    out.push(pt)
+  }
+  return out
+}
+
+export function buildLatencyChart(
+  rows: TaskQueryResult[],
+  type: LatencyType,
+  maxPoints = 500,
+) {
   const names = seriesNames(rows)
   const series: ChartSeries[] = names.map(name => ({ name, color: latencyColor(name) }))
   const byTs = new Map<number, ChartPoint>()
@@ -73,7 +102,7 @@ export function buildLatencyChart(rows: TaskQueryResult[], type: LatencyType) {
 
   const data = [...byTs.values()].sort((a, b) => a.t - b.t)
   forwardFill(data, names)
-  return { data, series }
+  return { data: downsample(data, names, maxPoints), series }
 }
 
 export interface LatencyStats {

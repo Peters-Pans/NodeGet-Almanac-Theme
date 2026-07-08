@@ -3,9 +3,7 @@ import { taskQuery } from '../api/methods'
 import type { BackendPool } from '../api/pool'
 import type { TaskQueryResult } from '../types'
 
-const WINDOW_MS = 60 * 60 * 1000
-const REFRESH_MS = 10_000
-const QUERY_TIMEOUT_MS = 20_000
+const QUERY_TIMEOUT_MS = 25_000
 
 function clean(rows: TaskQueryResult[] | undefined): TaskQueryResult[] {
   return (rows ?? [])
@@ -13,19 +11,30 @@ function clean(rows: TaskQueryResult[] | undefined): TaskQueryResult[] {
     .sort((a, b) => a.timestamp - b.timestamp)
 }
 
+/**
+ * 拉取节点的延迟(ping / tcp_ping)历史。
+ * windowMs 决定时间窗口;limit 显式传给后端——task_query 默认封顶 1000 行且只回最近的一段,
+ * 不传 limit 会让长窗口静默退化成「最近 ~2 小时」。统计值在组件侧按全量 rows 计算,图表再降采样。
+ */
 export function useNodeLatency(
   pool: BackendPool | null,
   source: string | null,
   uuid: string | null,
+  windowMs: number,
+  limit: number,
+  refreshMs: number,
 ) {
   const [pingData, setPingData] = useState<TaskQueryResult[]>([])
   const [tcpData, setTcpData] = useState<TaskQueryResult[]>([])
   const [loading, setLoading] = useState(false)
 
+  // 仅在节点切换时清空,避免换时间窗口时闪一下空白(旧数据留到新数据到达再替换)
   useEffect(() => {
     setPingData([])
     setTcpData([])
+  }, [source, uuid])
 
+  useEffect(() => {
     if (!pool || !source || !uuid) return
     const entry = pool.entries.find(e => e.name === source)
     if (!entry) return
@@ -34,18 +43,18 @@ export function useNodeLatency(
 
     const fetchOnce = async () => {
       const now = Date.now()
-      const window: [number, number] = [now - WINDOW_MS, now]
+      const window: [number, number] = [now - windowMs, now]
       setLoading(true)
 
       const [ping, tcp] = await Promise.allSettled([
         taskQuery(
           entry.client,
-          [{ uuid }, { timestamp_from_to: window }, { type: 'ping' }],
+          [{ uuid }, { timestamp_from_to: window }, { type: 'ping' }, { limit }],
           QUERY_TIMEOUT_MS,
         ),
         taskQuery(
           entry.client,
-          [{ uuid }, { timestamp_from_to: window }, { type: 'tcp_ping' }],
+          [{ uuid }, { timestamp_from_to: window }, { type: 'tcp_ping' }, { limit }],
           QUERY_TIMEOUT_MS,
         ),
       ])
@@ -57,12 +66,12 @@ export function useNodeLatency(
     }
 
     fetchOnce()
-    const timer = setInterval(fetchOnce, REFRESH_MS)
+    const timer = setInterval(fetchOnce, refreshMs)
     return () => {
       cancelled = true
       clearInterval(timer)
     }
-  }, [pool, source, uuid])
+  }, [pool, source, uuid, windowMs, limit, refreshMs])
 
   return { pingData, tcpData, loading }
 }
